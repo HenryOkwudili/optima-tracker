@@ -10,6 +10,8 @@ import TaskDialog from './components/TaskDialog.jsx';
 import TaskTable from './components/TaskTable.jsx';
 import { isFinished, isOverdue, toDateInput } from './utils.js';
 
+const STATUS_OPTIONS = [['all', 'All statuses'], ['open', 'Not done'], ['todo', 'To do'], ['doing', 'In progress'], ['done', 'Done'], ['merged', 'Merged'], ['closed', 'Closed']];
+
 function storedValue(key, fallback) {
   try {
     const value = localStorage.getItem(key);
@@ -44,6 +46,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => storedValue('optima-sidebar', '') === 'collapsed');
   const revision = useRef(null);
   const syncing = useRef(false);
   const syncFailures = useRef(0);
@@ -94,8 +97,9 @@ export default function App() {
     try {
       localStorage.setItem('optima-day', date);
       localStorage.setItem('optima-view', view);
+      localStorage.setItem('optima-sidebar', collapsed ? 'collapsed' : 'open');
     } catch { /* storage is optional */ }
-  }, [date, view]);
+  }, [date, view, collapsed]);
 
   const canWrite = true;
   const overdue = useMemo(() => tasks.filter((task) => isOverdue(task)), [tasks]);
@@ -266,16 +270,19 @@ export default function App() {
         event.preventDefault();
         document.querySelector('input[aria-label="Search tasks"]')?.focus();
       } else if (event.key === '[') {
-        setMobileMenuOpen((open) => !open);
+        if (window.matchMedia?.('(min-width: 1024px)').matches) setCollapsed((value) => !value);
+        else setMobileMenuOpen((open) => !open);
       }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [canWrite]);
 
-  const sidebar = (
+  const renderSidebar = (isCollapsed, onCollapse) => (
     <Sidebar
-    onOwner={(value) => { setOwner(value); setMobileMenuOpen(false); }}
+      collapsed={isCollapsed}
+      onCollapse={onCollapse}
+      onOwner={(value) => { setOwner(value); setMobileMenuOpen(false); }}
       onTheme={setTheme}
       onWorkstream={(value) => { setWorkstream(value); setMobileMenuOpen(false); }}
       owner={owner}
@@ -284,11 +291,12 @@ export default function App() {
       workstream={workstream}
     />
   );
+  const dayCount = new Set(tasks.map((task) => task.day).filter(Boolean)).size;
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7] text-slate-900 dark:bg-[#0c0e11] dark:text-slate-100 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <div className="hidden h-screen lg:sticky lg:top-0 lg:block">{sidebar}</div>
-      {mobileMenuOpen && <div className="fixed inset-0 z-40 lg:hidden"><button aria-label="Close navigation" className="absolute inset-0 bg-slate-950/50" onClick={() => setMobileMenuOpen(false)} type="button" /><div className="relative h-full w-[264px]">{sidebar}</div></div>}
+    <div className={`min-h-screen bg-[#f4f5f7] text-slate-900 dark:bg-[#0c0e11] dark:text-slate-100 lg:grid ${collapsed ? 'lg:grid-cols-[72px_minmax(0,1fr)]' : 'lg:grid-cols-[330px_minmax(0,1fr)]'}`}>
+      <div className="hidden h-screen lg:sticky lg:top-0 lg:block">{renderSidebar(collapsed, () => setCollapsed((value) => !value))}</div>
+      {mobileMenuOpen && <div className="fixed inset-0 z-40 lg:hidden"><button aria-label="Close navigation" className="absolute inset-0 bg-slate-950/50" onClick={() => setMobileMenuOpen(false)} type="button" /><div className="relative h-full w-[300px]">{renderSidebar(false)}</div></div>}
       <main className="min-w-0">
         <DashboardHeader
           allDays={allDays}
@@ -300,32 +308,47 @@ export default function App() {
           onExport={exportWorkbook}
           onMenu={() => setMobileMenuOpen(true)}
           onNotifications={() => setNotificationsOpen((open) => !open)}
-          onSearch={setSearch}
-          onStatus={setStatusFilter}
           onToday={() => { setDate(toDateInput()); setAllDays(false); }}
-          onView={setView}
           overdue={overdue}
-          search={search}
           showNotifications={notificationsOpen}
-          status={statusFilter}
-          view={view}
         />
-        <div className="mx-auto grid max-w-[1500px] gap-5 px-5 py-6 lg:px-8">
+        <div className="grid gap-5 px-5 py-6 lg:px-8">
           {notice && <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100" role="status"><Icon className="mt-0.5 size-4 shrink-0" name="warning" /><span className="flex-1">{notice}</span><button aria-label="Dismiss message" className="text-amber-700 dark:text-amber-300" onClick={() => setNotice('')} type="button"><Icon className="size-4" name="close" /></button></div>}
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div><p className="text-xs font-medium uppercase tracking-[.13em] text-slate-400">Project close-out · 13 Nov 2026</p><h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Daily checklist</h1></div>
-            <div className="text-xs text-slate-400">{visibleTasks.length} {visibleTasks.length === 1 ? 'task' : 'tasks'}{allDays ? ' · all dates' : ` · ${date}`}</div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-slate-200 dark:border-[#242a33]">
+            <div className="flex" role="tablist" aria-label="View">
+              {[['list', 'List', 'list'], ['board', 'Board', 'board']].map(([key, label, icon]) => (
+                <button aria-selected={view === key} className={`-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-3 text-base font-medium ${view === key ? 'border-[#86bc25] text-slate-950 dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`} key={key} onClick={() => setView(key)} role="tab" type="button"><Icon className="size-4" name={icon} />{label}</button>
+              ))}
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-3 pb-2">
+              <label className="relative">
+                <Icon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" name="search" />
+                <input aria-label="Search tasks" className="h-10 w-64 rounded-lg border border-slate-200 bg-white pl-10 pr-9 text-sm text-slate-800 placeholder:text-slate-400 dark:border-[#343b47] dark:bg-[#14171c] dark:text-slate-100 sm:w-80" onChange={(event) => setSearch(event.target.value)} placeholder="Search tasks, owners, notes" value={search} />
+                <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-slate-200 px-1.5 text-xs text-slate-400 dark:border-[#343b47]">/</kbd>
+              </label>
+              <select aria-label="Filter by status" className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-[#343b47] dark:bg-[#14171c] dark:text-slate-200" onChange={(event) => setStatusFilter(event.target.value)} value={statusFilter}>
+                {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <span className="whitespace-nowrap text-sm text-slate-400">{visibleTasks.length} of {tasks.length} shown</span>
+            </div>
           </div>
-          <Overview overdueCount={overdue.filter((task) => visibleTasks.some((item) => item.id === task.id)).length} tasks={visibleTasks} />
+          {(workstream !== 'all' || owner !== 'all') && (
+            <div className="flex flex-wrap gap-2">
+              {workstream !== 'all' && <button aria-label={`Clear workstream filter ${workstream}`} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500 dark:border-[#343b47] dark:bg-[#14171c] dark:text-slate-400" onClick={() => setWorkstream('all')} type="button">Workstream: <b className="font-semibold text-slate-900 dark:text-slate-100">{workstream}</b> <span aria-hidden="true">×</span></button>}
+              {owner !== 'all' && <button aria-label="Clear owner filter" className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500 dark:border-[#343b47] dark:bg-[#14171c] dark:text-slate-400" onClick={() => setOwner('all')} type="button">Owner: <b className="font-semibold text-slate-900 dark:text-slate-100">{owner === '__none' ? 'Unassigned' : owner}</b> <span aria-hidden="true">×</span></button>}
+            </div>
+          )}
+          <Overview tasks={visibleTasks} />
           {view === 'list'
             ? <TaskTable canWrite={canWrite} onCreate={() => setSelectedTask({ status: 'todo' })} onOpen={setSelectedTask} onSort={sortTasks} onStatus={changeStatus} sortDir={sortDir} sortKey={sortKey} subtasks={subtasks} tasks={visibleTasks} />
             : <KanbanBoard canWrite={canWrite} onCreate={(status) => setSelectedTask({ status })} onOpen={setSelectedTask} onStatus={(taskOrId, status) => {
               const task = typeof taskOrId === 'string' ? tasks.find((item) => item.id === taskOrId) : taskOrId;
               if (task) changeStatus(task, status);
             }} subtasks={subtasks} tasks={visibleTasks} />}
-          <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-200 pt-4 text-xs text-slate-400 dark:border-[#242a33]">
+          <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
             <span className="inline-flex items-center gap-2"><span className={`size-2 rounded-full ${syncStatus === 'Live' ? 'bg-[#86bc25]' : syncStatus === 'Disconnected' ? 'bg-red-500' : 'bg-amber-400'}`} />{syncStatus}</span>
-            <span>Updates every 4 seconds</span><span className="ml-auto">Shortcuts: <b>N</b> new task · <b>/</b> search · <b>[</b> menu</span>
+            <span>Export covers all {tasks.length} tasks across {dayCount} {dayCount === 1 ? 'day' : 'days'}.</span>
+            <span>Shortcuts: <b className="text-slate-700 dark:text-slate-200">N</b> new task, <b className="text-slate-700 dark:text-slate-200">/</b> search, <b className="text-slate-700 dark:text-slate-200">[</b> sidebar</span>
           </footer>
         </div>
       </main>

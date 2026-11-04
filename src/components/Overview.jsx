@@ -1,43 +1,39 @@
 import { isFinished, STATUSES } from '../utils.js';
 
-const summaries = [
-  { label: 'Total tasks', key: 'total', color: 'bg-slate-400' },
-  { label: 'In progress', key: 'doing', color: 'bg-blue-500' },
-  { label: 'To do', key: 'todo', color: 'bg-slate-400' },
-  { label: 'Completed', key: 'done', color: 'bg-lime-500' },
-  { label: 'Overdue', key: 'overdue', color: 'bg-red-500' },
-];
+const dots = {
+  doing: 'bg-blue-500',
+  done: 'bg-lime-600',
+  merged: 'bg-violet-500',
+  closed: 'bg-teal-600',
+  todo: 'bg-slate-400',
+};
+// Order shown in the summary strip.
+const order = ['doing', 'done', 'merged', 'closed', 'todo'];
 
-export default function Overview({ tasks, overdueCount }) {
-  const values = {
-    total: tasks.length,
-    doing: tasks.filter((task) => task.status === 'doing').length,
-    todo: tasks.filter((task) => task.status === 'todo').length,
-    done: tasks.filter((task) => isFinished(task.status)).length,
-    overdue: overdueCount,
-  };
-  const done = values.total ? Math.round(values.done / values.total * 100) : 0;
+export default function Overview({ tasks }) {
+  const total = tasks.length;
+  const finished = tasks.filter((task) => isFinished(task.status)).length;
+  const percent = total ? Math.round(finished / total * 100) : 0;
 
   return (
-    <section aria-label="Task progress" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      {summaries.map(({ label, key, color }) => (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-[#242a33] dark:bg-[#14171c]" key={key}>
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
-            {label}<span className={`size-2 rounded-full ${color}`} />
-          </div>
-          <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">{values[key]}</div>
-          {key === 'done' && <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-[#242a33]"><div className="h-full rounded-full bg-[#86bc25]" style={{ width: `${done}%` }} /></div>}
+    <section aria-label="Task progress" className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-[#242a33] dark:bg-[#14171c]">
+      <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-[#242a33] md:grid-cols-6">
+        <div className="col-span-2 px-6 py-5 md:col-span-1">
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Completed</div>
+          <div className="mt-1 flex items-baseline gap-2"><span className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">{finished} / {total}</span><span className="text-sm text-slate-400">{percent}%</span></div>
         </div>
-      ))}
-      <div className="hidden rounded-xl border border-slate-200 bg-white p-4 dark:border-[#242a33] dark:bg-[#14171c] xl:block">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Status distribution</p>
-        <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-[#242a33]">
-          {STATUSES.map((status) => {
-            const count = tasks.filter((task) => task.status === status.value).length;
-            return count ? <span className={`h-full ${status.value === 'doing' ? 'bg-blue-500' : status.value === 'done' ? 'bg-lime-500' : status.value === 'merged' ? 'bg-violet-500' : 'bg-slate-400'}`} key={status.value} style={{ width: `${count / Math.max(tasks.length, 1) * 100}%` }} /> : null;
-          })}
-        </div>
-        <p className="mt-2 text-[11px] text-slate-400">{values.total ? `${done}% complete` : 'No tasks yet'}</p>
+        {order.map((value) => {
+          const status = STATUSES.find((item) => item.value === value);
+          return (
+            <div className="px-6 py-5" key={value}>
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400"><span className={`size-2 rounded-full ${dots[value]}`} />{status.label}</div>
+              <div className="mt-1 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">{tasks.filter((task) => task.status === value).length}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div aria-label={`${percent}% complete`} className="h-1.5 bg-slate-200 dark:bg-[#242a33]" role="progressbar" aria-valuemax={100} aria-valuemin={0} aria-valuenow={percent}>
+        <div className="h-full bg-[#86bc25] transition-all" style={{ width: `${percent}%` }} />
       </div>
     </section>
   );
