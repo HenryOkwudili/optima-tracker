@@ -1,0 +1,27 @@
+# Render Blueprint for the Optima close-out tracker.
+# Render > New > Blueprint > pick this repository.
+databases:
+  - name: optima-db
+    databaseName: optima
+    user: optima
+    plan: free            # free databases expire after 30 days (check current Render terms); use basic-256mb to keep the data
+    ipAllowList: []       # only services inside your Render account can connect
+
+services:
+  - type: web
+    name: optima-tracker
+    runtime: node
+    plan: free            # free web services sleep when idle and take about a minute to wake; use starter to avoid that
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: optima-db
+          property: connectionString
