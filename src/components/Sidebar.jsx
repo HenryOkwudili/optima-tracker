@@ -29,6 +29,7 @@ function FilterButton({ active, collapsed, count, label, onClick, color = 'bg-sl
 
 export default function Sidebar({ tasks, workstreams, owners, workstream, owner, onWorkstream, onOwner, onAddWorkstream, onAddOwner, onManageOptions, theme, onTheme, collapsed = false, onCollapse }) {
   const countsFor = (property, value) => tasks.filter((task) => property === 'all' || task[property] === value).length;
+  const workstreamTasks = workstream === 'all' ? tasks : tasks.filter((task) => task.ws === workstream);
   const heading = 'px-3 pb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-slate-500';
   const addButton = 'grid size-7 shrink-0 place-items-center rounded-md bg-[#86bc25] text-slate-950 transition-colors hover:bg-[#97cf2e]';
 
@@ -65,22 +66,22 @@ export default function Sidebar({ tasks, workstreams, owners, workstream, owner,
           </button>
         </div>
         <div className={collapsed ? 'mt-4' : ''}>
-          <FilterButton active={owner === 'all'} badge={<Icon className="size-4" name="user" />} collapsed={collapsed} color="bg-slate-500" count={tasks.length} label="Everyone" onClick={() => onOwner('all')} round />
+          <FilterButton active={owner === 'all'} badge={<Icon className="size-4" name="user" />} collapsed={collapsed} color="bg-slate-500" count={workstreamTasks.length} label="Everyone" onClick={() => onOwner('all')} round />
           {owners.map((person, index) => (
             <FilterButton
               active={owner === person}
               badge={initials(person)}
               collapsed={collapsed}
               color={personColors[index % personColors.length]}
-              count={countsFor('owner', person)}
+              count={workstreamTasks.filter((task) => task.owner === person).length}
               key={person}
               label={person}
               onClick={() => onOwner(owner === person ? 'all' : person)}
               round
             />
           ))}
-          {tasks.some((task) => !task.owner) && (
-            <FilterButton active={owner === '__none'} badge="?" collapsed={collapsed} color="bg-slate-600" count={tasks.filter((task) => !task.owner).length} label="Unassigned" onClick={() => onOwner(owner === '__none' ? 'all' : '__none')} round />
+          {workstreamTasks.some((task) => !task.owner) && (
+            <FilterButton active={owner === '__none'} badge="?" collapsed={collapsed} color="bg-slate-600" count={workstreamTasks.filter((task) => !task.owner).length} label="Unassigned" onClick={() => onOwner(owner === '__none' ? 'all' : '__none')} round />
           )}
         </div>
       </div>

@@ -236,6 +236,14 @@ export default function App() {
     }
   }
 
+  const createTask = useCallback((status = 'todo') => {
+    setSelectedTask({
+      status,
+      ws: workstream === 'all' ? '' : workstream,
+      owner: owner === 'all' || owner === '__none' ? '' : owner,
+    });
+  }, [owner, workstream]);
+
   function sortTasks(key) {
     if (sortKey === key) setSortDir((direction) => direction * -1);
     else {
@@ -291,7 +299,7 @@ export default function App() {
       if (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
       if (event.key.toLowerCase() === 'n' && canWrite) {
         event.preventDefault();
-        setSelectedTask({ status: 'todo' });
+        createTask();
       } else if (event.key === '/') {
         event.preventDefault();
         document.querySelector('input[aria-label="Search tasks"]')?.focus();
@@ -302,7 +310,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canWrite]);
+  }, [canWrite, createTask]);
 
   const renderSidebar = (isCollapsed, onCollapse) => (
     <Sidebar
@@ -313,7 +321,11 @@ export default function App() {
       onManageOptions={() => { setManageOptionKind(null); setManageOptionsOpen(true); setMobileMenuOpen(false); }}
       onOwner={(value) => { setOwner(value); setMobileMenuOpen(false); }}
       onTheme={setTheme}
-      onWorkstream={(value) => { setWorkstream(value); setMobileMenuOpen(false); }}
+      onWorkstream={(value) => {
+        setWorkstream(value);
+        if (value !== 'all') setAllDays(true);
+        setMobileMenuOpen(false);
+      }}
       owner={owner}
       owners={owners}
       tasks={tasks}
@@ -334,7 +346,7 @@ export default function App() {
           canWrite={canWrite}
           day={date}
           onAllDays={() => setAllDays((current) => !current)}
-          onCreate={() => setSelectedTask({ status: 'todo' })}
+          onCreate={() => createTask()}
           onDayChange={(value) => { setDate(value); setAllDays(false); }}
           onExport={exportWorkbook}
           onMenu={() => setMobileMenuOpen(true)}
@@ -371,8 +383,8 @@ export default function App() {
           )}
           <Overview tasks={visibleTasks} />
           {view === 'list'
-            ? <TaskTable canWrite={canWrite} onCreate={() => setSelectedTask({ status: 'todo' })} onOpen={setSelectedTask} onShowAllDates={() => setAllDays(true)} onSort={sortTasks} onStatus={changeStatus} otherDateTaskCount={otherDateTaskCount} sortDir={sortDir} sortKey={sortKey} subtasks={subtasks} tasks={visibleTasks} />
-            : <KanbanBoard canWrite={canWrite} onCreate={(status) => setSelectedTask({ status })} onOpen={setSelectedTask} onStatus={(taskOrId, status) => {
+            ? <TaskTable canWrite={canWrite} onCreate={() => createTask()} onOpen={setSelectedTask} onShowAllDates={() => setAllDays(true)} onSort={sortTasks} onStatus={changeStatus} otherDateTaskCount={otherDateTaskCount} sortDir={sortDir} sortKey={sortKey} subtasks={subtasks} tasks={visibleTasks} />
+            : <KanbanBoard canWrite={canWrite} onCreate={createTask} onOpen={setSelectedTask} onStatus={(taskOrId, status) => {
               const task = typeof taskOrId === 'string' ? tasks.find((item) => item.id === taskOrId) : taskOrId;
               if (task) changeStatus(task, status);
             }} subtasks={subtasks} tasks={visibleTasks} />}
