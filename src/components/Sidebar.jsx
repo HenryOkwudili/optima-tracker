@@ -30,7 +30,7 @@ function FilterButton({ active, collapsed, count, label, onClick, color = 'bg-sl
 export default function Sidebar({ tasks, workstreams, owners, workstream, owner, onWorkstream, onOwner, onAddWorkstream, onAddOwner, onManageOptions, theme, onTheme, collapsed = false, onCollapse }) {
   const countsFor = (property, value) => tasks.filter((task) => property === 'all' || task[property] === value).length;
   const heading = 'px-3 pb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-slate-500';
-  const addButton = 'grid size-7 shrink-0 place-items-center rounded-md text-slate-400 hover:bg-[#161a20] hover:text-white';
+  const addButton = 'grid size-7 shrink-0 place-items-center rounded-md bg-[#86bc25] text-slate-950 transition-colors hover:bg-[#97cf2e]';
 
   return (
     <aside className="flex h-full flex-col border-r border-[#1b2027] bg-[#0b0d10] text-slate-100">
