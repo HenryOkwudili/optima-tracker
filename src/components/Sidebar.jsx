@@ -27,9 +27,10 @@ function FilterButton({ active, collapsed, count, label, onClick, color = 'bg-sl
   );
 }
 
-export default function Sidebar({ tasks, workstreams, owners, workstream, owner, onWorkstream, onOwner, onManageOptions, theme, onTheme, collapsed = false, onCollapse }) {
+export default function Sidebar({ tasks, workstreams, owners, workstream, owner, onWorkstream, onOwner, onAddWorkstream, onAddOwner, onManageOptions, theme, onTheme, collapsed = false, onCollapse }) {
   const countsFor = (property, value) => tasks.filter((task) => property === 'all' || task[property] === value).length;
   const heading = 'px-3 pb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-slate-500';
+  const addButton = 'grid size-7 shrink-0 place-items-center rounded-md text-slate-400 hover:bg-[#161a20] hover:text-white';
 
   return (
     <aside className="flex h-full flex-col border-r border-[#1b2027] bg-[#0b0d10] text-slate-100">
@@ -38,7 +39,12 @@ export default function Sidebar({ tasks, workstreams, owners, workstream, owner,
         {!collapsed && <span className="font-semibold tracking-tight">Optima Close-out</span>}
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        {!collapsed && <p className={`${heading} pt-4`}>Workstreams</p>}
+        <div className={`${heading} flex items-center justify-between pt-4`}>
+          {!collapsed && <span>Workstreams</span>}
+          <button aria-label="Add workstream" className={addButton} onClick={onAddWorkstream} title={collapsed ? 'Add workstream' : undefined} type="button">
+            <Icon className="size-4" name="add" />
+          </button>
+        </div>
         <FilterButton active={workstream === 'all'} badge={<Icon className="size-4" name="grid" />} collapsed={collapsed} count={countsFor('all')} label="All workstreams" onClick={() => onWorkstream('all')} />
         {workstreams.map((item, index) => (
           <FilterButton
@@ -52,7 +58,12 @@ export default function Sidebar({ tasks, workstreams, owners, workstream, owner,
             onClick={() => onWorkstream(workstream === item ? 'all' : item)}
           />
         ))}
-        {!collapsed && <p className={`${heading} pt-7`}>Team</p>}
+        <div className={`${heading} flex items-center justify-between pt-7`}>
+          {!collapsed && <span>Team</span>}
+          <button aria-label="Add team owner" className={addButton} onClick={onAddOwner} title={collapsed ? 'Add team owner' : undefined} type="button">
+            <Icon className="size-4" name="add" />
+          </button>
+        </div>
         <div className={collapsed ? 'mt-4' : ''}>
           <FilterButton active={owner === 'all'} badge={<Icon className="size-4" name="user" />} collapsed={collapsed} color="bg-slate-500" count={tasks.length} label="Everyone" onClick={() => onOwner('all')} round />
           {owners.map((person, index) => (

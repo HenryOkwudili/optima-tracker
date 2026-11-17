@@ -49,6 +49,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [manageOptionsOpen, setManageOptionsOpen] = useState(false);
+  const [manageOptionKind, setManageOptionKind] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => storedValue('optima-sidebar', '') === 'collapsed');
   const revision = useRef(null);
@@ -300,7 +301,9 @@ export default function App() {
     <Sidebar
       collapsed={isCollapsed}
       onCollapse={onCollapse}
-      onManageOptions={() => { setManageOptionsOpen(true); setMobileMenuOpen(false); }}
+      onAddOwner={() => { setManageOptionKind('owners'); setManageOptionsOpen(true); setMobileMenuOpen(false); }}
+      onAddWorkstream={() => { setManageOptionKind('workstreams'); setManageOptionsOpen(true); setMobileMenuOpen(false); }}
+      onManageOptions={() => { setManageOptionKind(null); setManageOptionsOpen(true); setMobileMenuOpen(false); }}
       onOwner={(value) => { setOwner(value); setMobileMenuOpen(false); }}
       onTheme={setTheme}
       onWorkstream={(value) => { setWorkstream(value); setMobileMenuOpen(false); }}
@@ -389,8 +392,9 @@ export default function App() {
         workstreams={workstreams}
       />}
       {manageOptionsOpen && <ManageOptionsDialog
+        initialAddKind={manageOptionKind}
         onAdd={addOption}
-        onClose={() => setManageOptionsOpen(false)}
+        onClose={() => { setManageOptionsOpen(false); setManageOptionKind(null); }}
         onRemove={removeOption}
         owners={owners}
         workstreams={workstreams}

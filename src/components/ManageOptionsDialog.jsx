@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import Icon from './Icon.jsx';
 
-function OptionList({ label, kind, options, onAdd, onRemove }) {
+function OptionList({ label, kind, options, onAdd, onRemove, initialAdding = false }) {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(initialAdding);
 
   async function add(event) {
     event.preventDefault();
@@ -103,7 +103,7 @@ function OptionList({ label, kind, options, onAdd, onRemove }) {
   );
 }
 
-export default function ManageOptionsDialog({ workstreams, owners, onAdd, onRemove, onClose }) {
+export default function ManageOptionsDialog({ workstreams, owners, onAdd, onRemove, onClose, initialAddKind }) {
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/50 p-4"
@@ -124,9 +124,9 @@ export default function ManageOptionsDialog({ workstreams, owners, onAdd, onRemo
             <Icon name="close" />
           </button>
         </header>
-        <OptionList kind="workstreams" label="Workstreams" onAdd={onAdd} onRemove={onRemove} options={workstreams} />
+        <OptionList initialAdding={initialAddKind === 'workstreams'} kind="workstreams" label="Workstreams" onAdd={onAdd} onRemove={onRemove} options={workstreams} />
         <div className="border-t border-slate-100 pt-5 dark:border-[#242a33]">
-          <OptionList kind="owners" label="Team owners" onAdd={onAdd} onRemove={onRemove} options={owners} />
+          <OptionList initialAdding={initialAddKind === 'owners'} kind="owners" label="Team owners" onAdd={onAdd} onRemove={onRemove} options={owners} />
         </div>
       </section>
     </div>
