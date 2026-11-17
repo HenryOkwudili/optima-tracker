@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
-import { PRIORITIES, STATUSES, toDateInput, WORKSTREAMS } from '../utils.js';
+import { PRIORITIES, STATUSES, toDateInput } from '../utils.js';
 
 const blankTask = (status = 'todo') => ({
-  title: '', ws: WORKSTREAMS[0], owner: '', watcher: '', priority: 'med',
+  title: '', ws: '', owner: '', watcher: '', priority: 'med',
   status, day: toDateInput(), due: '', note: '',
 });
 
-export default function TaskDialog({ task, subtasks, canWrite, onClose, onSave, onDelete, onAddSubtask, onUpdateSubtask, onDeleteSubtask, saving }) {
+export default function TaskDialog({ task, subtasks, workstreams, owners, canWrite, onClose, onSave, onDelete, onAddSubtask, onUpdateSubtask, onDeleteSubtask, saving }) {
   const [form, setForm] = useState(() => task ? { ...blankTask(), ...task } : blankTask());
   const [newSubtask, setNewSubtask] = useState('');
   const [error, setError] = useState('');
   const isNew = !task?.id;
+  const workstreamOptions = form.ws && !workstreams.includes(form.ws) ? [form.ws, ...workstreams] : workstreams;
+  const ownerOptions = form.owner && !owners.includes(form.owner) ? [form.owner, ...owners] : owners;
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -78,9 +80,9 @@ export default function TaskDialog({ task, subtasks, canWrite, onClose, onSave, 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1.5 text-xs font-medium text-slate-500">Status<select className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('status', event.target.value)} value={form.status}>{STATUSES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}</select></label>
             <label className="grid gap-1.5 text-xs font-medium text-slate-500">Priority<select className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('priority', event.target.value)} value={form.priority}>{PRIORITIES.map((value) => <option key={value} value={value}>{value === 'med' ? 'Medium' : value[0].toUpperCase() + value.slice(1)}</option>)}</select></label>
-            <label className="grid gap-1.5 text-xs font-medium text-slate-500">Workstream<select className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('ws', event.target.value)} value={form.ws}>{WORKSTREAMS.map((item) => <option key={item}>{item}</option>)}</select></label>
+            <label className="grid gap-1.5 text-xs font-medium text-slate-500">Workstream<select className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('ws', event.target.value)} value={form.ws}><option value="">No workstream</option>{workstreamOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
             <label className="grid gap-1.5 text-xs font-medium text-slate-500">Due date<input className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('day', event.target.value)} required type="date" value={form.day} /></label>
-            <label className="grid gap-1.5 text-xs font-medium text-slate-500">Owner<input className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} maxLength={80} onChange={(event) => change('owner', event.target.value)} placeholder="Unassigned" value={form.owner} /></label>
+            <label className="grid gap-1.5 text-xs font-medium text-slate-500">Owner<select className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('owner', event.target.value)} value={form.owner}><option value="">Unassigned</option>{ownerOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
             <label className="grid gap-1.5 text-xs font-medium text-slate-500">Due time<input className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} onChange={(event) => change('due', event.target.value)} type="time" value={form.due} /></label>
             <label className="grid gap-1.5 text-xs font-medium text-slate-500 sm:col-span-2">Watcher<input className="h-10 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100" disabled={!canWrite} maxLength={80} onChange={(event) => change('watcher', event.target.value)} placeholder="Optional" value={form.watcher} /></label>
           </div>

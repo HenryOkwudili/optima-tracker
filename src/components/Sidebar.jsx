@@ -1,5 +1,5 @@
 import Icon from './Icon.jsx';
-import { initials, WORKSTREAMS } from '../utils.js';
+import { initials } from '../utils.js';
 
 const workstreamColors = [
   'bg-lime-500/20 text-lime-400',
@@ -27,8 +27,7 @@ function FilterButton({ active, collapsed, count, label, onClick, color = 'bg-sl
   );
 }
 
-export default function Sidebar({ tasks, workstream, owner, onWorkstream, onOwner, theme, onTheme, collapsed = false, onCollapse }) {
-  const owners = [...new Set(tasks.map((task) => task.owner).filter(Boolean))];
+export default function Sidebar({ tasks, workstreams, owners, workstream, owner, onWorkstream, onOwner, onManageOptions, theme, onTheme, collapsed = false, onCollapse }) {
   const countsFor = (property, value) => tasks.filter((task) => property === 'all' || task[property] === value).length;
   const heading = 'px-3 pb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-slate-500';
 
@@ -41,12 +40,12 @@ export default function Sidebar({ tasks, workstream, owner, onWorkstream, onOwne
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {!collapsed && <p className={`${heading} pt-4`}>Workstreams</p>}
         <FilterButton active={workstream === 'all'} badge={<Icon className="size-4" name="grid" />} collapsed={collapsed} count={countsFor('all')} label="All workstreams" onClick={() => onWorkstream('all')} />
-        {WORKSTREAMS.map((item, index) => (
+        {workstreams.map((item, index) => (
           <FilterButton
             active={workstream === item}
-            badge={{ 'Print-Paper': 'PP', Testing: 'TS' }[item] || item.slice(0, 2).toUpperCase()}
+            badge={item.slice(0, 2).toUpperCase()}
             collapsed={collapsed}
-            color={workstreamColors[index]}
+            color={workstreamColors[index % workstreamColors.length]}
             count={countsFor('ws', item)}
             key={item}
             label={item}
@@ -75,6 +74,15 @@ export default function Sidebar({ tasks, workstream, owner, onWorkstream, onOwne
         </div>
       </div>
       <div className="border-t border-[#1b2027] p-3">
+        <button
+          aria-label="Manage workstreams and team owners"
+          className={`mb-2 flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[15px] text-slate-300 hover:bg-[#161a20] ${collapsed ? 'justify-center px-0' : ''}`}
+          onClick={onManageOptions}
+          title={collapsed ? 'Manage lists' : undefined}
+          type="button"
+        >
+          <Icon className="size-4" name="list" />{!collapsed && 'Manage lists'}
+        </button>
         <div className={`grid gap-1 rounded-lg bg-[#14181d] p-1 ${collapsed ? '' : 'grid-cols-2'}`}>
           {(collapsed ? [theme === 'dark' ? 'light' : 'dark'] : ['light', 'dark']).map((mode) => (
             <button aria-label={`${mode} theme`} aria-pressed={theme === mode} className={`flex h-9 items-center justify-center gap-2 rounded-md text-sm ${theme === mode && !collapsed ? 'bg-[#2a313b] text-white' : 'text-slate-400'}`} key={mode} onClick={() => onTheme(mode)} type="button">

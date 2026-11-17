@@ -3,6 +3,7 @@ import { apiRequest, collectionApi } from './api.js';
 import DashboardHeader from './components/DashboardHeader.jsx';
 import Icon from './components/Icon.jsx';
 import KanbanBoard from './components/KanbanBoard.jsx';
+import ManageOptionsDialog from './components/ManageOptionsDialog.jsx';
 import Notifications from './components/Notifications.jsx';
 import Overview from './components/Overview.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -30,6 +31,8 @@ function initialTheme() {
 export default function App() {
   const [tasks, setTasks] = useState([]);
   const [subtasks, setSubtasks] = useState([]);
+  const [workstreams, setWorkstreams] = useState([]);
+  const [owners, setOwners] = useState([]);
   const [syncStatus, setSyncStatus] = useState('Connecting');
   const [notice, setNotice] = useState('');
   const [theme, setTheme] = useState(initialTheme);
@@ -45,6 +48,7 @@ export default function App() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [saving, setSaving] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [manageOptionsOpen, setManageOptionsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => storedValue('optima-sidebar', '') === 'collapsed');
   const revision = useRef(null);
@@ -63,6 +67,8 @@ export default function App() {
         revision.current = result.rev;
         setTasks(result.tasks.map(({ id, data }) => ({ id, ...data, status: data.status === 'blocked' ? 'doing' : data.status })));
         setSubtasks(result.subtasks.map(({ id, data }) => ({ id, ...data })));
+        setWorkstreams(result.workstreams);
+        setOwners(result.owners);
       }
     } catch (error) {
       syncFailures.current += 1;
@@ -201,6 +207,18 @@ export default function App() {
     }
   }
 
+  async function addOption(kind, name) {
+    await apiRequest(`/api/options/${kind}`, { method: 'POST', body: { name } });
+    await refresh();
+  }
+
+  async function removeOption(kind, name) {
+    await apiRequest(`/api/options/${kind}/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    if (kind === 'workstreams' && workstream === name) setWorkstream('all');
+    if (kind === 'owners' && owner === name) setOwner('all');
+    await refresh();
+  }
+
   async function changeStatus(task, status) {
     await patchTask(task, { status });
   }
@@ -282,13 +300,16 @@ export default function App() {
     <Sidebar
       collapsed={isCollapsed}
       onCollapse={onCollapse}
+      onManageOptions={() => { setManageOptionsOpen(true); setMobileMenuOpen(false); }}
       onOwner={(value) => { setOwner(value); setMobileMenuOpen(false); }}
       onTheme={setTheme}
       onWorkstream={(value) => { setWorkstream(value); setMobileMenuOpen(false); }}
       owner={owner}
+      owners={owners}
       tasks={tasks}
       theme={theme}
       workstream={workstream}
+      workstreams={workstreams}
     />
   );
   const dayCount = new Set(tasks.map((task) => task.day).filter(Boolean)).size;
@@ -361,9 +382,18 @@ export default function App() {
         onDeleteSubtask={deleteSubtask}
         onSave={saveTask}
         onUpdateSubtask={updateSubtask}
+        owners={owners}
         saving={saving}
         subtasks={subtasks.filter((subtask) => subtask.parent === selectedTask.id).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))}
         task={selectedTask}
+        workstreams={workstreams}
+      />}
+      {manageOptionsOpen && <ManageOptionsDialog
+        onAdd={addOption}
+        onClose={() => setManageOptionsOpen(false)}
+        onRemove={removeOption}
+        owners={owners}
+        workstreams={workstreams}
       />}
     </div>
   );
