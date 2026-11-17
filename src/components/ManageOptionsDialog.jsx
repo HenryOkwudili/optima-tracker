@@ -5,6 +5,7 @@ function OptionList({ label, kind, options, onAdd, onRemove }) {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [adding, setAdding] = useState(false);
 
   async function add(event) {
     event.preventDefault();
@@ -15,6 +16,7 @@ function OptionList({ label, kind, options, onAdd, onRemove }) {
     try {
       await onAdd(kind, value);
       setName('');
+      setAdding(false);
     } catch (saveError) {
       setError(saveError.message);
     } finally {
@@ -34,32 +36,51 @@ function OptionList({ label, kind, options, onAdd, onRemove }) {
     }
   }
 
+  function toggleAdding() {
+    setAdding((current) => !current);
+    setName('');
+    setError('');
+  }
+
   return (
     <section className="grid gap-3">
-      <div>
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</h3>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {kind === 'owners' ? 'Task owners available in the Team filter.' : 'Categories available on tasks and in the sidebar.'}
-        </p>
-      </div>
-      <form className="flex gap-2" onSubmit={add}>
-        <input
-          aria-label={`New ${kind === 'owners' ? 'team owner' : 'workstream'}`}
-          className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100"
-          maxLength={kind === 'owners' ? 80 : 60}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={`Add ${kind === 'owners' ? 'team owner' : 'workstream'}`}
-          value={name}
-        />
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {kind === 'owners' ? 'Task owners available in the Team filter.' : 'Categories available on tasks and in the sidebar.'}
+          </p>
+        </div>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#86bc25] px-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
-          disabled={!name.trim() || busy}
-          type="submit"
+          aria-expanded={adding}
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#86bc25] px-3 text-xs font-semibold text-slate-950"
+          onClick={toggleAdding}
+          type="button"
         >
-          <Icon className="size-4" name="add" />
-          Add
+          <Icon className="size-3.5" name={adding ? 'close' : 'add'} />
+          {adding ? 'Cancel' : 'Add'}
         </button>
-      </form>
+      </div>
+      {adding && (
+        <form className="flex gap-2" onSubmit={add}>
+          <input
+            aria-label={`New ${kind === 'owners' ? 'team owner' : 'workstream'}`}
+            autoFocus
+            className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-transparent px-3 text-sm text-slate-800 dark:border-[#343b47] dark:text-slate-100"
+            maxLength={kind === 'owners' ? 80 : 60}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={`Enter ${kind === 'owners' ? 'team owner' : 'workstream'} name`}
+            value={name}
+          />
+          <button
+            className="rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-[#343b47] dark:text-slate-200"
+            disabled={!name.trim() || busy}
+            type="submit"
+          >
+            Save
+          </button>
+        </form>
+      )}
       <ul className="grid gap-1">
         {options.map((option) => (
           <li className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-[#242a33]" key={option}>
