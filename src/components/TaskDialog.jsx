@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 import { PRIORITIES, STATUSES, toDateInput } from '../utils.js';
 
-const blankTask = (status = 'todo') => ({
+const blankTask = (status = 'todo', day = toDateInput()) => ({
   title: '', ws: '', owner: '', watcher: '', priority: 'med',
-  status, day: toDateInput(), due: '', note: '',
+  status, day, due: '', note: '',
 });
 
-export default function TaskDialog({ task, subtasks, workstreams, owners, canWrite, onClose, onSave, onDelete, onAddSubtask, onUpdateSubtask, onDeleteSubtask, saving }) {
-  const [form, setForm] = useState(() => task ? { ...blankTask(), ...task } : blankTask());
+export default function TaskDialog({ task, subtasks, workstreams, owners, canWrite, defaultDay, onClose, onSave, onDelete, onAddSubtask, onUpdateSubtask, onDeleteSubtask, saving }) {
+  const [form, setForm] = useState(() => task ? { ...blankTask(task.status, defaultDay), ...task } : blankTask('todo', defaultDay));
   const [newSubtask, setNewSubtask] = useState('');
   const [error, setError] = useState('');
   const isNew = !task?.id;
@@ -91,9 +91,13 @@ export default function TaskDialog({ task, subtasks, workstreams, owners, canWri
               <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Subtasks <span className="font-normal text-slate-400">{subtasks.filter((item) => item.done).length}/{subtasks.length}</span></h3>
               <div className="grid gap-2">
                 {subtasks.map((subtask) => (
-                  <div className="flex items-center gap-2" key={subtask.id}>
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:flex" key={subtask.id}>
                     <input aria-label={`Complete ${subtask.title}`} checked={subtask.done} className="size-4 accent-[#86bc25]" disabled={!canWrite} onChange={(event) => onUpdateSubtask(subtask, { done: event.target.checked })} type="checkbox" />
                     <input aria-label="Subtask title" className={`min-w-0 flex-1 border-b border-transparent bg-transparent py-1 text-sm text-slate-700 focus:border-slate-300 dark:text-slate-300 dark:focus:border-[#343b47] ${subtask.done ? 'text-slate-400 line-through' : ''}`} defaultValue={subtask.title} onBlur={(event) => { const title = event.target.value.trim(); if (title && title !== subtask.title) onUpdateSubtask(subtask, { title }); else if (!title) event.currentTarget.value = subtask.title; }} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
+                    <select aria-label={`Owner for ${subtask.title}`} className="col-start-2 col-end-4 w-full rounded-md border border-slate-200 bg-transparent px-2 py-1 text-xs text-slate-600 dark:border-[#343b47] dark:text-slate-300 sm:max-w-28 sm:w-auto" disabled={!canWrite} onChange={(event) => onUpdateSubtask(subtask, { owner: event.target.value })} value={subtask.owner || ''}>
+                      <option value="">Unassigned</option>
+                      {(subtask.owner && !owners.includes(subtask.owner) ? [subtask.owner, ...owners] : owners).map((owner) => <option key={owner}>{owner}</option>)}
+                    </select>
                     <button aria-label={`Delete ${subtask.title}`} className="grid size-7 place-items-center rounded text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 dark:hover:bg-red-950/40" disabled={!canWrite} onClick={() => onDeleteSubtask(subtask)} type="button"><Icon className="size-3.5" name="trash" /></button>
                   </div>
                 ))}

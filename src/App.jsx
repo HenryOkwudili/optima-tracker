@@ -110,10 +110,9 @@ export default function App() {
 
   const canWrite = true;
   const overdue = useMemo(() => tasks.filter((task) => isOverdue(task)), [tasks]);
-  const visibleTasks = useMemo(() => {
+  const matchingTasks = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return tasks.filter((task) => {
-      if (!allDays && task.day !== date) return false;
       if (workstream !== 'all' && task.ws !== workstream) return false;
       if (owner === '__none' ? Boolean(task.owner) : owner !== 'all' && task.owner !== owner) return false;
       if (statusFilter === 'open' && isFinished(task.status)) return false;
@@ -136,7 +135,12 @@ export default function App() {
       const priority = { high: 0, med: 1, low: 2 };
       return unfinished || (priority[a.priority] ?? 1) - (priority[b.priority] ?? 1) || (a.n || 0) - (b.n || 0);
     });
-  }, [tasks, allDays, date, workstream, owner, statusFilter, search, sortKey, sortDir]);
+  }, [tasks, workstream, owner, statusFilter, search, sortKey, sortDir]);
+  const visibleTasks = useMemo(
+    () => allDays ? matchingTasks : matchingTasks.filter((task) => task.day === date),
+    [allDays, date, matchingTasks],
+  );
+  const otherDateTaskCount = allDays ? 0 : matchingTasks.filter((task) => task.day !== date).length;
 
   async function saveTask(values) {
     if (!canWrite) return;
@@ -263,6 +267,9 @@ export default function App() {
       { Metric: 'Total tasks', Value: tasks.length },
       { Metric: 'To do', Value: tasks.filter((task) => task.status === 'todo').length },
       { Metric: 'In progress', Value: tasks.filter((task) => task.status === 'doing').length },
+      { Metric: 'Done', Value: tasks.filter((task) => task.status === 'done').length },
+      { Metric: 'Merged', Value: tasks.filter((task) => task.status === 'merged').length },
+      { Metric: 'Closed', Value: tasks.filter((task) => task.status === 'closed').length },
       { Metric: 'Completed', Value: tasks.filter((task) => isFinished(task.status)).length },
       { Metric: 'Overdue', Value: overdue.length },
     ];
@@ -364,7 +371,7 @@ export default function App() {
           )}
           <Overview tasks={visibleTasks} />
           {view === 'list'
-            ? <TaskTable canWrite={canWrite} onCreate={() => setSelectedTask({ status: 'todo' })} onOpen={setSelectedTask} onSort={sortTasks} onStatus={changeStatus} sortDir={sortDir} sortKey={sortKey} subtasks={subtasks} tasks={visibleTasks} />
+            ? <TaskTable canWrite={canWrite} onCreate={() => setSelectedTask({ status: 'todo' })} onOpen={setSelectedTask} onShowAllDates={() => setAllDays(true)} onSort={sortTasks} onStatus={changeStatus} otherDateTaskCount={otherDateTaskCount} sortDir={sortDir} sortKey={sortKey} subtasks={subtasks} tasks={visibleTasks} />
             : <KanbanBoard canWrite={canWrite} onCreate={(status) => setSelectedTask({ status })} onOpen={setSelectedTask} onStatus={(taskOrId, status) => {
               const task = typeof taskOrId === 'string' ? tasks.find((item) => item.id === taskOrId) : taskOrId;
               if (task) changeStatus(task, status);
@@ -379,6 +386,7 @@ export default function App() {
       {notificationsOpen && <div className="fixed right-5 top-[62px] z-30 lg:right-8"><Notifications canWrite={canWrite} onClose={() => setNotificationsOpen(false)} onOpen={(task) => { setSelectedTask(task); setNotificationsOpen(false); }} onPatch={patchTask} tasks={overdue} /></div>}
       {selectedTask && <TaskDialog
         canWrite={canWrite}
+        defaultDay={allDays ? toDateInput() : date}
         onAddSubtask={addSubtask}
         onClose={() => setSelectedTask(null)}
         onDelete={deleteTask}
